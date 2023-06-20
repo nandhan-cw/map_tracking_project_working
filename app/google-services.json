@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "837647073467",
+    "project_id": "maptracking-b38e8",
+    "storage_bucket": "maptracking-b38e8.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:837647073467:android:9e96f1cbcf96471789699e",
+        "android_client_info": {
+          "package_name": "com.example.map_tracking"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "837647073467-5s8j6btesklc60d89phjpns01vq18e0e.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.map_tracking",
+            "certificate_hash": "04c718a6fffa12262cc4f85890c4a5816fee4b39"
+          }
+        },
+        {
+          "client_id": "837647073467-b1n9f9lmf568ve4fk6pf38kf2v8imigj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDjc5YL-L4uwAOMP7sKNxJUuyUwIZyylhk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "837647073467-b1n9f9lmf568ve4fk6pf38kf2v8imigj.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
