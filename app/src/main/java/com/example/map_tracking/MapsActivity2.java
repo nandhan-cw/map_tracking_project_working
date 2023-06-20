@@ -79,6 +79,7 @@ public class MapsActivity2 extends FragmentActivity implements OnMapReadyCallbac
     //to get location permissions.
     private final static int LOCATION_REQUEST_CODE = 23;
     Marker userLocationMarker;
+    ArrayList latlngarray;
     boolean locationPermission = false;
     FusedLocationProviderClient fusedLocationProviderClient;
     //polyline object
@@ -95,6 +96,7 @@ public class MapsActivity2 extends FragmentActivity implements OnMapReadyCallbac
         requestPermision();
         latlngdatabase = FirebaseDatabase.getInstance().getReference("LocationInfo");
         myButton =findViewById(R.id.myButton);
+        latlngarray = new ArrayList();
         locationRequest = LocationRequest.create();
         locationRequest.setInterval(1000);
         locationRequest.setFastestInterval(1000);
@@ -125,14 +127,20 @@ public class MapsActivity2 extends FragmentActivity implements OnMapReadyCallbac
     LocationCallback locationCallback = new LocationCallback() {
         @Override
         public void onLocationResult(LocationResult locationResult) {
-            //Toast.makeText(MapsActivity2.this, "1111111", Toast.LENGTH_SHORT).show();
             super.onLocationResult(locationResult);
             Log.d(TAG, "onLocationResult: " + locationResult.getLastLocation());
             if (mMap != null) {
-                LatLng startLatLng = new LatLng(locationResult.getLastLocation().getLatitude(), locationResult.getLastLocation().getLongitude());
-                Toast.makeText(MapsActivity2.this, "check "+startLatLng.toString(), Toast.LENGTH_SHORT).show();
-                // Call Findroutes with the updated start and end locations
+                setUserLocationMarker(locationResult.getLastLocation());
+                String latlngupdates = locationResult.getLastLocation().getLatitude()+","+locationResult.getLastLocation().getLongitude();
+                //latlngdatabase.child("Deliveryperson1").
+                Map<String, Object> entryValues = new HashMap<>();
+                entryValues.put("latlngupdates", latlngupdates);
+                entryValues.put("startpoint", "11.23243434,11.983943");
+                entryValues.put("destinationpoint", "11.9892633,11.99736473");
 
+// Set the values of all three properties at once
+                latlngdatabase.child("Deliveryperson1").setValue(entryValues);
+                Toast.makeText(MapsActivity2.this, "lat : "+locationResult.getLastLocation().getLatitude()+" long: "+locationResult.getLastLocation().getLongitude(), Toast.LENGTH_SHORT).show();
             }
         }
     };

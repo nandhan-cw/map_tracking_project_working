@@ -84,6 +84,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     FusedLocationProviderClient fusedLocationProviderClient;
     //polyline object
     private List<Polyline> polylines = null;
+    ArrayList latlngarray;
     Button myButton;
     DatabaseReference latlngdatabase;
     LocationInfo latlngvalue;
@@ -97,7 +98,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         requestPermision();
         latlngdatabase = FirebaseDatabase.getInstance().getReference("LocationInfo");
         myButton =findViewById(R.id.myButton);
-
+        latlngarray = new ArrayList();
         //init google map fragment to show map.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -123,7 +124,30 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Toast.makeText(MapsActivity.this, "on map ready", Toast.LENGTH_SHORT).show();
 
         // Add the code snippet here
+        Handler handler = new Handler();
+        handler.postDelayed(
+                new Runnable() {
+                    public void run() {
 
+                        latlngdatabase.child("Deliveryperson1").addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot snapshot) {
+
+                                Toast.makeText(MapsActivity.this, "update:" + snapshot.child("latlngupdates").getValue(String.class), Toast.LENGTH_SHORT).show();
+                                String latLngString = snapshot.child("latlngupdates").getValue(String.class);
+                                latlngarray.add(latLngString);
+                                Log.d(TAG, "onDataChange: latlng array= "+latlngarray);
+
+                            }
+
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError error) {
+
+                            }
+                        });
+                        handler.postDelayed(this,500);
+                    }
+                }, 500);
 
 
 
