@@ -153,7 +153,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         String endlatLngString = snapshot.child("destinationpoint").getValue(String.class);
                         String bearingVal = snapshot.child("bearing").getValue(String.class);
                         setUserLocationMarker(latLngString, bearingVal);
-
                         if (startlatLngString != null && endlatLngString != null) {
                             // Parse the latitude and longitude values
                             String[] startpointlatLngValues = startlatLngString.split(",");
@@ -165,25 +164,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                                 double latitude1 = Double.parseDouble(endpointlatLngValues[0]);
                                 double longitude1 = Double.parseDouble(endpointlatLngValues[1]);
-
-
                                 double latitude2 = Double.parseDouble(updatespointlatLngString[0]);
                                 double longitude2 = Double.parseDouble(updatespointlatLngString[1]);
                                 // Create LatLng objects
                                 startLatLng = new LatLng(latitude, longitude);
                                 endLatLng = new LatLng(latitude1, longitude1);
                                 updatesLatLng = new LatLng(latitude2,longitude2);
-                                //passValuesToFindRoutes(startLatLng, endLatLng,updatesLatLng);
-                                Findroutes(updatesLatLng,endLatLng);
 
-                                // Pass the values to the method outside of onDataChange()
-                               // Toast.makeText(MapsActivity.this, "updated latlng "+updatesLatLng.toString(), Toast.LENGTH_SHORT).show();
-
-
+                                updatesLatLng = new LatLng(latitude2,longitude2);
+                                passValuesToFindRoutes(startLatLng, endLatLng,updatesLatLng);
                             }
                         }
-
-
                     }
 
                     @Override
@@ -191,6 +182,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     }
                 });
+
                 handler.postDelayed(this, 500);
             }
         }, 500);
@@ -201,7 +193,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private void passValuesToFindRoutes(LatLng startLatLng,LatLng endLatLng,LatLng updateslatlng) {
        //Toast.makeText(this, "check: "+updateslatlng.toString()+" end. "+endLatLng.toString(), Toast.LENGTH_SHORT).show();
-        Findroutes(updateslatlng, endLatLng);
+        Findroutes(startLatLng, endLatLng);
         markerstartend(startLatLng, endLatLng);
     }
 
@@ -351,7 +343,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         View parentLayout = findViewById(android.R.id.content);
         Snackbar snackbar= Snackbar.make(parentLayout, e.toString(), Snackbar.LENGTH_LONG);
         snackbar.show();
-        Toast.makeText(this, "faaa", Toast.LENGTH_SHORT).show();
 //        Findroutes(start,end);
     }
 
