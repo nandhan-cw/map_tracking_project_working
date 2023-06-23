@@ -5,15 +5,22 @@ import static android.service.controls.ControlsProviderService.TAG;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.View;
@@ -87,6 +94,16 @@ public class MapsActivity2 extends FragmentActivity implements OnMapReadyCallbac
     Button myButton;
     DatabaseReference latlngdatabase;
     Circle userLocationAccuracyCircle;
+    NotificationManagerCompat notificationManagerCompat;
+    Notification notification;
+    private static final String TAG = "MapsActivity2";
+    private static final String CHANNEL_ID = "notification_channel";
+    private static final String CHANNEL_NAME = "Notification Channel";
+    private static final String CHANNEL_DESCRIPTION = "This is a notification channel";
+
+
+    private NotificationCompat.Builder notificationBuilder;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -112,7 +129,32 @@ public class MapsActivity2 extends FragmentActivity implements OnMapReadyCallbac
                 startActivity(c);
             }
         });
+        createNotificationChannel();
 
+        notificationManagerCompat = NotificationManagerCompat.from(this);
+        notificationBuilder = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(R.drawable.redcar1)
+                .setContentTitle("Notification Title")
+                .setContentText("Notification Text")
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT);
+
+        notification = notificationBuilder.build();
+    }
+
+    public void push(View view) {
+
+    }
+
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = CHANNEL_NAME;
+            String description = CHANNEL_DESCRIPTION;
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
+            channel.setDescription(description);
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
     }
 
     @Override
@@ -132,11 +174,13 @@ public class MapsActivity2 extends FragmentActivity implements OnMapReadyCallbac
             if (mMap != null) {
                 setUserLocationMarker(locationResult.getLastLocation());
                 String latlngupdates = locationResult.getLastLocation().getLatitude()+","+locationResult.getLastLocation().getLongitude();
+                String bearing = String.valueOf(locationResult.getLastLocation().getBearing());
                 //latlngdatabase.child("Deliveryperson1").
                 Map<String, Object> entryValues = new HashMap<>();
                 entryValues.put("latlngupdates", latlngupdates);
-                entryValues.put("startpoint", "11.23243434,11.983943");
-                entryValues.put("destinationpoint", "11.9892633,11.99736473");
+                entryValues.put("startpoint", "11.039389246920685, 76.97952005368357");
+                entryValues.put("destinationpoint", "11.04828942895949, 76.97322062669703");
+                entryValues.put("bearing", bearing);
 
 // Set the values of all three properties at once
                 latlngdatabase.child("Deliveryperson1").setValue(entryValues);
@@ -211,23 +255,59 @@ public class MapsActivity2 extends FragmentActivity implements OnMapReadyCallbac
             }
 
         });
-        start =new LatLng(11.041841063355635, 76.98343546717702);
-        end = new LatLng(11.039303269575614, 76.97945506918862);
-        //get destination location when user click on map
-        //mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
-        //   @Override
-        //  public void onMapClick(LatLng latLng) {
 
-        //      end=latLng;
+                latlngdatabase.child("Deliveryperson1").addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        // Retrieve values from the snapshot
 
-        //      mMap.clear();
+                        String startlatLngString = snapshot.child("startpoint").getValue(String.class);
+                        String endlatLngString = snapshot.child("destinationpoint").getValue(String.class);
 
-        //       start=new LatLng(myLocation.getLatitude(),myLocation.getLongitude());
-        //start route finding
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(end, 17));
-        Findroutes(start,end);
-        //   }
-        // });
+
+
+                        if (startlatLngString != null && endlatLngString != null) {
+                            // Parse the latitude and longitude values
+                            String[] startpointlatLngValues = startlatLngString.split(",");
+                            String[] endpointlatLngValues = endlatLngString.split(",");
+
+                            if (startpointlatLngValues.length == 2 && endpointlatLngValues.length == 2) {
+                                double latitude = Double.parseDouble(startpointlatLngValues[0]);
+                                double longitude = Double.parseDouble(startpointlatLngValues[1]);
+                                double latitude1 = Double.parseDouble(endpointlatLngValues[0]);
+                                double longitude1 = Double.parseDouble(endpointlatLngValues[1]);
+                                // Create LatLng objects
+                                start = new LatLng(latitude, longitude);
+                                end = new LatLng(latitude1, longitude1);
+                                // Pass the values to the method outside of onDataChange()
+
+                                //get destination location when user click on map
+                                //mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+                                //   @Override
+                                //  public void onMapClick(LatLng latLng) {
+
+                                //      end=latLng;
+
+                                //      mMap.clear();
+
+                                //       start=new LatLng(myLocation.getLatitude(),myLocation.getLongitude());
+                                //start route finding
+                                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(end, 17));
+                                Findroutes(start,end);
+                            }
+                        }
+
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+
+                    }
+                });
+
+        //start =new LatLng(11.039389246920685, 76.97952005368357);
+        // end = new LatLng(11.04828942895949, 76.97322062669703);
+        // Findroutes(start,end);
 
     }
 
@@ -278,7 +358,9 @@ public class MapsActivity2 extends FragmentActivity implements OnMapReadyCallbac
             // for ActivityCompat#requestPermissions for more details.
             return;
         }
+        Log.d(TAG, "startLocationUpdates: locationcallback : "+locationCallback.toString()+", locationrewuest: "+locationRequest.toString());
         fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper());
+
     }
 
     private void stopLocationUpdates() {
@@ -309,7 +391,7 @@ public class MapsActivity2 extends FragmentActivity implements OnMapReadyCallbac
         }
         else
         {
-
+            Toast.makeText(this, "start :"+Start+"end :"+End, Toast.LENGTH_SHORT).show();
             Routing routing = new Routing.Builder()
                     .travelMode(AbstractRouting.TravelMode.DRIVING)
                     .withListener(this)
@@ -339,7 +421,7 @@ public class MapsActivity2 extends FragmentActivity implements OnMapReadyCallbac
     @Override
     public void onRoutingSuccess(ArrayList<Route> route, int shortestRouteIndex) {
 
-        CameraUpdate center = CameraUpdateFactory.newLatLng(start);
+        CameraUpdate center = CameraUpdateFactory.newLatLng(end);
         CameraUpdate zoom = CameraUpdateFactory.zoomTo(16);
         if(polylines!=null) {
             polylines.clear();

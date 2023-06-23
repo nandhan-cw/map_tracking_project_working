@@ -1,15 +1,17 @@
 package com.example.map_tracking;
 
 public class LocationInfo {
-    String latlngupdates, startpoint, detinationpoint;
+    String latlngupdates, startpoint, detinationpoint,bearing;
 
     public LocationInfo() {
     }
 
-    public LocationInfo (String latlngupdates, String startpoint, String detinationpoint) {
+
+    public LocationInfo (String latlngupdates, String startpoint, String detinationpoint, String bearing) {
             this.latlngupdates = latlngupdates;
             this.startpoint = startpoint;
             this.detinationpoint = detinationpoint;
+            this.bearing = bearing;
         }
 
     public String getLatlngupdates() {
@@ -30,6 +32,13 @@ public class LocationInfo {
 
     public String getDetinationpoint() {
         return detinationpoint;
+    }
+    public String getBearing() {
+        return bearing;
+    }
+
+    public void setBearing(String bearing) {
+        this.bearing = bearing;
     }
 
     public void setDetinationpoint(String detinationpoint) {

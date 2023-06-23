@@ -1,6 +1,7 @@
 package com.example.map_tracking;
 
 import static android.service.controls.ControlsProviderService.TAG;
+import static android.view.FrameMetrics.ANIMATION_DURATION;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -9,6 +10,7 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
+import android.animation.ValueAnimator;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -16,8 +18,13 @@ import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.Interpolator;
+import android.view.animation.LinearInterpolator;
+import android.view.animation.RotateAnimation;
 import android.widget.Button;
 import android.widget.Toast;
 
@@ -76,10 +83,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     Location destinationLocation = null;
     protected LatLng start = null;
     protected LatLng end = null;
+    protected LatLng startlatilongval = null;
+    protected LatLng endlatilongval = null;
     LocationRequest locationRequest;
     //to get location permissions.
     private final static int LOCATION_REQUEST_CODE = 23;
     Marker userLocationMarker;
+    private Location previousLocation;
     boolean locationPermission = false;
     FusedLocationProviderClient fusedLocationProviderClient;
     //polyline object
@@ -87,6 +97,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     ArrayList latlngarray;
     Button myButton;
     DatabaseReference latlngdatabase;
+    protected LatLng startLatLng = null;
+    protected LatLng endLatLng = null;
+    protected LatLng updatesLatLng = null;
     LocationInfo latlngvalue;
     Circle userLocationAccuracyCircle;
     @Override
@@ -117,40 +130,79 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-
+        previousLocation = null;
         if (locationPermission) {
-            getMyLocation();
+
         }
         Toast.makeText(MapsActivity.this, "on map ready", Toast.LENGTH_SHORT).show();
 
         // Add the code snippet here
+        // Define a method to pass the values to Findroutes()
+
+
+// Inside your existing code
         Handler handler = new Handler();
-        handler.postDelayed(
-                new Runnable() {
-                    public void run() {
+        handler.postDelayed(new Runnable() {
+            public void run() {
+                latlngdatabase.child("Deliveryperson1").addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        // Retrieve values from the snapshot
+                        String latLngString = snapshot.child("latlngupdates").getValue(String.class);
+                        String startlatLngString = snapshot.child("startpoint").getValue(String.class);
+                        String endlatLngString = snapshot.child("destinationpoint").getValue(String.class);
+                        String bearingVal = snapshot.child("bearing").getValue(String.class);
+                        setUserLocationMarker(latLngString, bearingVal);
 
-                        latlngdatabase.child("Deliveryperson1").addListenerForSingleValueEvent(new ValueEventListener() {
-                            @Override
-                            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        if (startlatLngString != null && endlatLngString != null) {
+                            // Parse the latitude and longitude values
+                            String[] startpointlatLngValues = startlatLngString.split(",");
+                            String[] endpointlatLngValues = endlatLngString.split(",");
+                            String[] updatespointlatLngString = latLngString.split(",");
+                            if (startpointlatLngValues.length == 2 && endpointlatLngValues.length == 2) {
+                                double latitude = Double.parseDouble(startpointlatLngValues[0]);
+                                double longitude = Double.parseDouble(startpointlatLngValues[1]);
 
-                                Toast.makeText(MapsActivity.this, "update:" + snapshot.child("latlngupdates").getValue(String.class), Toast.LENGTH_SHORT).show();
-                                String latLngString = snapshot.child("latlngupdates").getValue(String.class);
-                                latlngarray.add(latLngString);
-                                Log.d(TAG, "onDataChange: latlng array= "+latlngarray);
+                                double latitude1 = Double.parseDouble(endpointlatLngValues[0]);
+                                double longitude1 = Double.parseDouble(endpointlatLngValues[1]);
+
+
+                                double latitude2 = Double.parseDouble(updatespointlatLngString[0]);
+                                double longitude2 = Double.parseDouble(updatespointlatLngString[1]);
+                                // Create LatLng objects
+                                startLatLng = new LatLng(latitude, longitude);
+                                endLatLng = new LatLng(latitude1, longitude1);
+                                updatesLatLng = new LatLng(latitude2,longitude2);
+                                //passValuesToFindRoutes(startLatLng, endLatLng,updatesLatLng);
+                                Findroutes(updatesLatLng,endLatLng);
+
+                                // Pass the values to the method outside of onDataChange()
+                               // Toast.makeText(MapsActivity.this, "updated latlng "+updatesLatLng.toString(), Toast.LENGTH_SHORT).show();
+
 
                             }
+                        }
 
-                            @Override
-                            public void onCancelled(@NonNull DatabaseError error) {
 
-                            }
-                        });
-                        handler.postDelayed(this,500);
                     }
-                }, 500);
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+
+                    }
+                });
+                handler.postDelayed(this, 500);
+            }
+        }, 500);
 
 
 
+    }
+
+    private void passValuesToFindRoutes(LatLng startLatLng,LatLng endLatLng,LatLng updateslatlng) {
+       //Toast.makeText(this, "check: "+updateslatlng.toString()+" end. "+endLatLng.toString(), Toast.LENGTH_SHORT).show();
+        Findroutes(updateslatlng, endLatLng);
+        markerstartend(startLatLng, endLatLng);
     }
 
     private void requestPermision() {
@@ -174,7 +226,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     //if permission granted.
                     locationPermission = true;
-                    getMyLocation();
+
 
                 } else {
                     // permission denied, boo! Disable the
@@ -185,98 +237,94 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    //to get user location
-    private void getMyLocation() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            return;
-        }
-        mMap.setMyLocationEnabled(true);
-        mMap.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
-            @Override
-            public void onMyLocationChange(Location location) {
-                myLocation = location;
-                LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
 
-                if (userLocationMarker == null) {
-                    MarkerOptions markerOptions = new MarkerOptions();
-                    markerOptions.position(latLng);
-                    markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.redcar1));
-                    markerOptions.rotation(location.getBearing());
-                    markerOptions.anchor((float) 0.5, (float) 0.5);
-                    userLocationMarker = mMap.addMarker(markerOptions);
-                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 17));
-                } else {
-                    userLocationMarker.setPosition(latLng);
-                    userLocationMarker.setRotation(location.getBearing());
+        private void setUserLocationMarker(String latLngString, String bearingVal) {
+
+            if (latLngString != null) {
+                String[] latLngValues = latLngString.split(",");
+                if (latLngValues.length == 2) {
+                    double latitude = Double.parseDouble(latLngValues[0]);
+                    double longitude = Double.parseDouble(latLngValues[1]);
+
+
+
+                    Location updatedLocation = new Location("");
+                    updatedLocation.setLatitude(latitude);
+                    updatedLocation.setLongitude(longitude);
+
+                    LatLng latLng = new LatLng(updatedLocation.getLatitude(), updatedLocation.getLongitude());
+
+                    if (userLocationMarker == null) {
+                        // Create a new marker
+                        MarkerOptions markerOptions = new MarkerOptions();
+                        markerOptions.position(latLng);
+                        markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.redcar1));
+                        markerOptions.anchor((float) 0.5, (float) 0.5);
+                        userLocationMarker = mMap.addMarker(markerOptions);
+                        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 17));
+                    } else {
+                        // Use the previously created marker
+                        userLocationMarker.setPosition(latLng);
+                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 17));
+                    }
+
+                    // Rotate the marker based on bearing value
+                    if (bearingVal != null) {
+                        float bearing = Float.parseFloat(bearingVal);
+                        if (userLocationMarker != null) {
+                            userLocationMarker.setRotation(bearing);
+                        }
+                    }
+
+                    if (userLocationAccuracyCircle == null) {
+                        CircleOptions circleOptions = new CircleOptions();
+                        circleOptions.center(latLng);
+                        circleOptions.strokeWidth(4);
+                        circleOptions.strokeColor(Color.argb(255, 255, 0, 0));
+                        circleOptions.fillColor(Color.argb(32, 255, 0, 0));
+                        circleOptions.radius(updatedLocation.getAccuracy());
+                        userLocationAccuracyCircle = mMap.addCircle(circleOptions);
+                    } else {
+                        userLocationAccuracyCircle.setCenter(latLng);
+                        userLocationAccuracyCircle.setRadius(updatedLocation.getAccuracy());
+                    }
                 }
             }
+            //start =new LatLng(11.039389246920685, 76.97952005368357);
+            //end = new LatLng(11.04828942895949, 76.97322062669703);
+            //get destination location when user click on map
+            //mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+            //   @Override
+            //  public void onMapClick(LatLng latLng) {
 
-        });
-        start =new LatLng(11.041841063355635, 76.98343546717702);
-        end = new LatLng(11.039303269575614, 76.97945506918862);
-        //get destination location when user click on map
-        //mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
-        //   @Override
-        //  public void onMapClick(LatLng latLng) {
+            //      end=latLng;
 
-        //      end=latLng;
+            //      mMap.clear();
 
-        //      mMap.clear();
+            //       start=new LatLng(myLocation.getLatitude(),myLocation.getLongitude());
+            //start route finding
 
-        //       start=new LatLng(myLocation.getLatitude(),myLocation.getLongitude());
-        //start route finding
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(end, 17));
-        Findroutes(start,end);
-        //   }
-        // });
-
-    }
-
-
-
-    private void setUserLocationMarker(Location location) {
-
-        LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-
-        if (userLocationMarker == null) {
-            //Create a new marker
-            MarkerOptions markerOptions = new MarkerOptions();
-            markerOptions.position(latLng);
-            markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.redcar1));
-            markerOptions.rotation(location.getBearing());
-            markerOptions.anchor((float) 0.5, (float) 0.5);
-            userLocationMarker = mMap.addMarker(markerOptions);
-            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 17));
-        } else {
-            //use the previously created marker
-            userLocationMarker.setPosition(latLng);
-            userLocationMarker.setRotation(location.getBearing());
-            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 17));
+            //Findroutes(start,end);
         }
 
-        if (userLocationAccuracyCircle == null) {
-            CircleOptions circleOptions = new CircleOptions();
-            circleOptions.center(latLng);
-            circleOptions.strokeWidth(4);
-            circleOptions.strokeColor(Color.argb(255, 255, 0, 0));
-            circleOptions.fillColor(Color.argb(32, 255, 0, 0));
-            circleOptions.radius(location.getAccuracy());
-            userLocationAccuracyCircle = mMap.addCircle(circleOptions);
-        } else {
-            userLocationAccuracyCircle.setCenter(latLng);
-            userLocationAccuracyCircle.setRadius(location.getAccuracy());
+    public void markerstartend(LatLng polylineStartLatLng,LatLng polylineEndLatLng){
+        if(polylines!=null) {
+            polylines.clear();
         }
+        PolylineOptions polyOptions = new PolylineOptions();
+        //Add Marker on route starting position
+        MarkerOptions startMarker = new MarkerOptions();
+        startMarker.position(polylineStartLatLng);
+        startMarker.title("My Location");
+        mMap.addMarker(startMarker);
+
+        //Add Marker on route ending position
+        MarkerOptions endMarker = new MarkerOptions();
+        endMarker.position(polylineEndLatLng);
+        endMarker.title("Destination");
+        mMap.addMarker(endMarker);
     }
-
-
-    // function to find Routes.
+        // function to find Routes.
     public void Findroutes(LatLng Start, LatLng End)
     {
         if(Start==null || End==null) {
@@ -284,6 +332,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         else
         {
+           Toast.makeText(this, "startupdates= "+Start, Toast.LENGTH_SHORT).show();
 
             Routing routing = new Routing.Builder()
                     .travelMode(AbstractRouting.TravelMode.DRIVING)
@@ -302,19 +351,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         View parentLayout = findViewById(android.R.id.content);
         Snackbar snackbar= Snackbar.make(parentLayout, e.toString(), Snackbar.LENGTH_LONG);
         snackbar.show();
+        Toast.makeText(this, "faaa", Toast.LENGTH_SHORT).show();
 //        Findroutes(start,end);
     }
 
     @Override
     public void onRoutingStart() {
-        Toast.makeText(MapsActivity.this,"Finding Route...",Toast.LENGTH_LONG).show();
+        //Toast.makeText(MapsActivity.this,"Finding Route...",Toast.LENGTH_LONG).show();
     }
 
     //If Route finding success..
     @Override
     public void onRoutingSuccess(ArrayList<Route> route, int shortestRouteIndex) {
 
-        CameraUpdate center = CameraUpdateFactory.newLatLng(start);
+        CameraUpdate center = CameraUpdateFactory.newLatLng(startLatLng);
         CameraUpdate zoom = CameraUpdateFactory.zoomTo(16);
         if(polylines!=null) {
             polylines.clear();
@@ -346,27 +396,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         }
 
-        //Add Marker on route starting position
-        MarkerOptions startMarker = new MarkerOptions();
-        startMarker.position(polylineStartLatLng);
-        startMarker.title("My Location");
-        mMap.addMarker(startMarker);
 
-        //Add Marker on route ending position
-        MarkerOptions endMarker = new MarkerOptions();
-        endMarker.position(polylineEndLatLng);
-        endMarker.title("Destination");
-        mMap.addMarker(endMarker);
     }
 
     @Override
     public void onRoutingCancelled() {
-        Findroutes(start,end);
+        Findroutes(startLatLng,endLatLng);
     }
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-        Findroutes(start,end);
+        Findroutes(startLatLng,endLatLng);
 
     }
 }
