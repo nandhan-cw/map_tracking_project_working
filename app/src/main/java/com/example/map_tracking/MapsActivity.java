@@ -46,6 +46,7 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
@@ -99,6 +100,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     DatabaseReference latlngdatabase;
     protected LatLng startLatLng = null;
     protected LatLng endLatLng = null;
+    private Polyline currentRoute;
     protected LatLng updatesLatLng = null;
     LocationInfo latlngvalue;
     Circle userLocationAccuracyCircle;
@@ -120,7 +122,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         myButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent c = new Intent(MapsActivity.this, MapsActivity2.class);
+                Intent c = new Intent(MapsActivity.this, MovingPath.class);
                 startActivity(c);
             }
         });
@@ -193,8 +195,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private void passValuesToFindRoutes(LatLng startLatLng,LatLng endLatLng,LatLng updateslatlng) {
        //Toast.makeText(this, "check: "+updateslatlng.toString()+" end. "+endLatLng.toString(), Toast.LENGTH_SHORT).show();
-        Findroutes(startLatLng, endLatLng);
-        markerstartend(startLatLng, endLatLng);
+
+        Findroutes(updateslatlng, endLatLng,"passvaluesmethid");
+       markerstartend(startLatLng, endLatLng);
     }
 
     private void requestPermision() {
@@ -268,6 +271,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         }
                     }
 
+
+
                     if (userLocationAccuracyCircle == null) {
                         CircleOptions circleOptions = new CircleOptions();
                         circleOptions.center(latLng);
@@ -300,9 +305,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
     public void markerstartend(LatLng polylineStartLatLng,LatLng polylineEndLatLng){
-        if(polylines!=null) {
-            polylines.clear();
-        }
+
         PolylineOptions polyOptions = new PolylineOptions();
         //Add Marker on route starting position
         MarkerOptions startMarker = new MarkerOptions();
@@ -317,15 +320,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.addMarker(endMarker);
     }
         // function to find Routes.
-    public void Findroutes(LatLng Start, LatLng End)
+    public void Findroutes(LatLng Start, LatLng End,String fromwhere)
     {
         if(Start==null || End==null) {
             Toast.makeText(MapsActivity.this,"Unable to get location", Toast.LENGTH_LONG).show();
         }
         else
         {
-           Toast.makeText(this, "startupdates= "+Start, Toast.LENGTH_SHORT).show();
-
             Routing routing = new Routing.Builder()
                     .travelMode(AbstractRouting.TravelMode.DRIVING)
                     .withListener(this)
@@ -343,7 +344,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         View parentLayout = findViewById(android.R.id.content);
         Snackbar snackbar= Snackbar.make(parentLayout, e.toString(), Snackbar.LENGTH_LONG);
         snackbar.show();
-//        Findroutes(start,end);
+        Findroutes(updatesLatLng,endLatLng,"");
     }
 
     @Override
@@ -357,15 +358,46 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         CameraUpdate center = CameraUpdateFactory.newLatLng(startLatLng);
         CameraUpdate zoom = CameraUpdateFactory.zoomTo(16);
-        if(polylines!=null) {
-            polylines.clear();
+
+        if (polylines != null) {
+            LatLng startpoly = updatesLatLng;
+            int i =0;
+            while(i<polylines.size()){
+                Polyline polyline = polylines.get(i);
+                //  Toast.makeText(this, ""+polylines.get(i).getPoints(), Toast.LENGTH_SHORT).show();
+                for(int j=0;j<polyline.getPoints().size();j++){
+                    Toast.makeText(this, ""+polyline.getPoints().get(j), Toast.LENGTH_SHORT).show();
+                    if(polyline.getPoints().equals(startpoly)){
+                        break;
+                    }
+                }
+
+                polylines.get(i).remove();
+                i++;
+            }
+         //   polylines.clear();
+        }
+
+
+        if (currentRoute != null) {
+            currentRoute.remove();
+            currentRoute = null;
         }
         PolylineOptions polyOptions = new PolylineOptions();
+        // Set the options for the new route...
+        currentRoute = mMap.addPolyline(polyOptions);
+
         LatLng polylineStartLatLng=null;
         LatLng polylineEndLatLng=null;
 
 
         polylines = new ArrayList<>();
+        currentRoute = mMap.addPolyline(polyOptions);
+
+        // Move the camera to show both the user marker and the route
+
+
+
         //add route(s) to the map using polyline
         for (int i = 0; i <route.size(); i++) {
 
@@ -392,12 +424,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public void onRoutingCancelled() {
-        Findroutes(startLatLng,endLatLng);
+        Findroutes(updatesLatLng,endLatLng,"cancelled");
     }
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-        Findroutes(startLatLng,endLatLng);
+        Findroutes(updatesLatLng,endLatLng,"faikled");
 
     }
 }

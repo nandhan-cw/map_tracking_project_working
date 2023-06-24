@@ -174,6 +174,9 @@ public class MapsActivity2 extends FragmentActivity implements OnMapReadyCallbac
             if (mMap != null) {
                 setUserLocationMarker(locationResult.getLastLocation());
                 String latlngupdates = locationResult.getLastLocation().getLatitude()+","+locationResult.getLastLocation().getLongitude();
+                LatLng temp = new LatLng(locationResult.getLastLocation().getLatitude(),locationResult.getLastLocation().getLongitude());
+                latlngarray.add(temp);
+                Log.d(TAG, "onLocationResult: temparray"+latlngarray);
                 String bearing = String.valueOf(locationResult.getLastLocation().getBearing());
                 //latlngdatabase.child("Deliveryperson1").
                 Map<String, Object> entryValues = new HashMap<>();

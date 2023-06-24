@@ -18,13 +18,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Map_tracking"
         tools:targetApi="31">
-        <activity
-            android:name=".PushNotification"
-            android:exported="false">
-            <meta-data
-                android:name="android.app.lib_name"
-                android:value="" />
-        </activity>
+
         <!--
              TODO: Before you run your application, you need a Google Maps API key.
 
@@ -41,14 +35,31 @@
             android:value="AIzaSyBoTdErOd_1lQGFxgkjIroIJeUOhY76_gE" />
 
         <activity
-            android:name=".MapsActivity2"
+            android:name=".OrdersMap"
             android:exported="true"
-            android:label="@string/title_activity_maps2">
+            android:label="@string/title_activity_orders_map">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+        <activity
+            android:name=".MovingPath"
+            android:exported="true"
+            android:label="@string/title_activity_moving_path"></activity>
+        <activity
+            android:name=".PushNotification"
+            android:exported="false">
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+        </activity>
+        <activity
+            android:name=".MapsActivity2"
+            android:exported="true"
+            android:label="@string/title_activity_maps2">
+
         </activity>
 
         <meta-data
@@ -57,7 +68,7 @@
 
         <activity
             android:name=".MapsActivity"
-            android:exported="false"
+            android:exported="true"
             android:label="@string/title_activity_maps"></activity>
         <activity
             android:name=".MainActivity"

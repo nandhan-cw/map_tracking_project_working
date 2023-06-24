@@ -4,4 +4,6 @@
     <string name="google_maps_key" />
     <string name="title_activity_maps2">MapsActivity2</string>
     <string name="get_direction">Get Direction</string>
+    <string name="title_activity_moving_path">MovingPath</string>
+    <string name="title_activity_orders_map">OrdersMap</string>
 </resources>
